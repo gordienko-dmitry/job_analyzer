@@ -2,8 +2,8 @@ import requests
 import time
 
 
-TIMEOUT = 1
-ATTEMPTS = 3
+TIMEOUT: int = 1
+ATTEMPTS: int = 3
 
 
 def _get_base_headers() -> dict:
@@ -11,16 +11,15 @@ def _get_base_headers() -> dict:
     return {"Content-Type": "application/json"}
 
 
-def _get(url, headers, params) -> requests.Response:
+def _get(url: str, headers: dict, params: dict) -> requests.Response:
     """Send GET request to server."""
-    for i in range(ATTEMPTS):
+    for _ in range(ATTEMPTS):
         try:
             response: requests.Response = requests.get(url, headers=headers, params=params, timeout=TIMEOUT)
             return response
         except requests.exceptions.Timeout:
-            if i == ATTEMPTS - 1:
-                raise requests.exceptions.Timeout
             time.sleep(0.5)
+    raise requests.exceptions.Timeout
 
 
 def get(url: str, **kwargs) -> dict:

@@ -1,6 +1,7 @@
-from typing import Union, Tuple, Iterable
+from typing import Union, Tuple, Iterable, Optional
 
 from .server import get
+from .salary import predict_rub_salary
 
 
 VACANCY_URL: str = "https://api.superjob.ru/2.0/vacancies/"
@@ -30,18 +31,12 @@ def _get_base_headers(key: str) -> dict:
 
 def _predict_rub_salary(vacancy) -> Union[int, None]:
     """Solving avg salary of vacancy."""
-    currency: str = vacancy.get("currency")
+    currency: str = vacancy.get("currency", "")
     if not currency or currency != "rub":
         return None
     salary_from: Union[int, None] = vacancy.get("payment_from")
     salary_to: Union[int, None] = vacancy.get("payment_to")
-    if not salary_to and not salary_from:
-        return None
-    if not salary_to:
-        return round(salary_from * 1.2)
-    if not salary_from:
-        return round(salary_to * 0.8)
-    return round((salary_to + salary_from) / 2)
+    return predict_rub_salary(salary_from, salary_to, currency)
 
 
 def _get_vacancy_info(key: str, text: str, page: int = 1, count: int = 20, **kwargs) -> dict:
@@ -84,13 +79,13 @@ def _get_avg_salary_and_processed_count(key: str, query: str) -> Tuple[int, int]
     return int(sum_salary / count) if count else 0, count
 
 
-def _get_all_vacancies_count(key: str, query: str) -> int:
+def _get_all_vacancies_count(key: str, query: str) -> Optional[int]:
     """Get count vacancies."""
     try:
         return _get_vacancy_info(key, query, page=1, count=1)["total"]
     except Exception as ex:
         print(ex)
-        return 0
+        return
 
 
 def get_sj_salary_info(key: str, queries: list) -> dict:

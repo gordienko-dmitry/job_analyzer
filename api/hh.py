@@ -1,7 +1,7 @@
-from typing import Union, Tuple, Iterable
+from typing import Union, Tuple, Iterable, Optional
 
 from .server import get
-
+from .salary import predict_rub_salary
 
 VACANCY_URL: str = "https://api.hh.ru/vacancies"
 
@@ -25,17 +25,12 @@ def _get_base_params() -> dict:
 def _predict_rub_salary(vacancy) -> Union[int, None]:
     """Solving avg salary of vacancy."""
     salary = vacancy.get("salary")
-    if not salary or salary.get("currency") != "RUR":
+    if not salary:
         return None
     salary_from: Union[int, None] = salary.get("from")
     salary_to: Union[int, None] = salary.get("to")
-    if not salary_to and not salary_from:
-        return None
-    if not salary_to:
-        return round(salary_from * 1.2)
-    if not salary_from:
-        return round(salary_to * 0.8)
-    return round((salary_to + salary_from) / 2)
+    currency: str = salary.get("currency", "")
+    return predict_rub_salary(salary_from, salary_to, currency)
 
 
 def _get_vacancy_info(text: str, page: int = 1, per_page: int = 20, **kwargs) -> dict:
@@ -76,13 +71,13 @@ def _get_avg_salary_and_processed_count(query: str) -> Tuple[int, int]:
     return int(sum_salary / count) if count else 0, count
 
 
-def _get_all_vacancies_count(query: str) -> int:
+def _get_all_vacancies_count(query: str) -> Optional[int]:
     """Get count vacancies with & without salary."""
     try:
         return _get_vacancy_info(query, page=1, per_page=1, only_with_salary=False)["found"]
     except Exception as ex:
         print(ex)
-        return 0
+        return
 
 
 def get_hh_salary_info(queries: list) -> dict:
